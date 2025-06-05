@@ -1,5 +1,5 @@
-variable "prefix" {
-  description = "Prefix for all resources"
+variable "cluster_name" {
+  description = "Name of the AKS cluster"
   type        = string
 }
 
@@ -9,18 +9,7 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  description = "Azure region where resources will be created"
-  type        = string
-  default     = "eastus"
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-}
-
-variable "cluster_name" {
-  description = "Name of the AKS cluster"
+  description = "Azure region to deploy the resources"
   type        = string
 }
 
@@ -54,38 +43,31 @@ variable "vm_size" {
   default     = "Standard_DS2_v2"
 }
 
-variable "vnet_address_space" {
-  description = "Address space for the virtual network"
-  type        = list(string)
-  default     = ["10.0.0.0/16"]
-}
-
-variable "aks_subnet_prefix" {
-  description = "Address prefix for AKS subnet"
-  type        = list(string)
-  default     = ["10.0.1.0/24"]
+variable "subnet_id" {
+  description = "ID of the subnet where the AKS cluster will be deployed"
+  type        = string
 }
 
 variable "dns_service_ip" {
-  description = "IP address for Kubernetes DNS service"
+  description = "IP address within the Kubernetes service address range that will be used by cluster service discovery"
   type        = string
   default     = "10.0.0.10"
 }
 
 variable "docker_bridge_cidr" {
-  description = "CIDR for Docker bridge network"
+  description = "CIDR block for the Docker bridge network"
   type        = string
   default     = "172.17.0.1/16"
 }
 
 variable "service_cidr" {
-  description = "CIDR for Kubernetes services"
+  description = "CIDR block for Kubernetes services"
   type        = string
   default     = "10.0.0.0/16"
 }
 
 variable "tags" {
-  description = "Tags to apply to all resources"
+  description = "A map of tags to add to all resources"
   type        = map(string)
   default     = {}
 }

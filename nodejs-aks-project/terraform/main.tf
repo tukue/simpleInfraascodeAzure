@@ -1,39 +1,56 @@
 # Configure the Azure provider
 provider "azurerm" {
   features {}
+  
+  # These will be provided by environment variables:
+  # ARM_SUBSCRIPTION_ID, ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID
+  use_oidc = false
 }
 
 # Create a resource group
-resource "azurerm_resource_group" "this" {
+module "resource_group" {
+  source = "./modules/resource_group"
+
   name     = var.resource_group_name
   location = var.location
   tags     = var.tags
 }
 
-# Create an AKS cluster
-resource "azurerm_kubernetes_cluster" "this" {
-  name                = var.cluster_name
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  dns_prefix          = var.cluster_name
+# Create network infrastructure
+module "network" {
+  source = "./modules/network"
+
+  vnet_name           = "${var.prefix}-vnet"
+  location            = module.resource_group.location
+  resource_group_name = module.resource_group.name
+  address_space       = var.vnet_address_space
+  aks_subnet_prefix   = var.aks_subnet_prefix
+  prefix             = var.prefix
+  tags               = var.tags
+
+  depends_on = [module.resource_group]
+}
+
+# Create AKS cluster
+module "aks" {
+  source = "./modules/aks"
+
+  cluster_name        = var.cluster_name
+  location            = module.resource_group.location
+  resource_group_name = module.resource_group.name
   kubernetes_version  = var.kubernetes_version
-
-  default_node_pool {
-    name       = "default"
-    node_count = var.node_count
-    vm_size    = var.vm_size
-  }
-
-  identity {
-    type = "SystemAssigned"
-  }
-
-  network_profile {
-    network_plugin = "azure"
-    network_policy = "calico"
-  }
-
+  node_count         = var.node_count
+  min_node_count     = var.min_node_count
+  max_node_count     = var.max_node_count
+  vm_size            = var.vm_size
+  subnet_id          = module.network.aks_subnet_id
+  dns_service_ip     = var.dns_service_ip
+  docker_bridge_cidr = var.docker_bridge_cidr
+  service_cidr       = var.service_cidr
+  
   tags = merge(var.tags, {
     Environment = var.environment
   })
+
+  depends_on = [module.network]
 }
