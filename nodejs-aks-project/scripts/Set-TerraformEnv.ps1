@@ -18,9 +18,9 @@ try {
         # Create a minimal .env file with required variables
         $envPath = ".env"
         @"
-resource_group_name=my-nodejs-aks-rg
+resource_group_name=nodejs-aks-rg
 location=northeurope
-cluster_name=my-aks-cluster
+cluster_name=aks-cluster
 "@ | Out-File -FilePath $envPath
         Write-Host "Created minimal .env file" -ForegroundColor Yellow
     }
@@ -41,7 +41,13 @@ cluster_name=my-aks-cluster
             Write-Host "Set ARM_CLIENT_ID"
         }
         if ($envContent -match 'AZURE_CLIENT_SECRET=([^\r\n]+)') {
-            [Environment]::SetEnvironmentVariable("ARM_CLIENT_SECRET", $matches[1])
+            $secretValue = $matches[1]
+            # Check if the value is a placeholder
+            if ($secretValue -eq "<YOUR_CLIENT_SECRET_HERE>") {
+                Write-Host "Error: Azure client secret is set to a placeholder value. Please update your .env file with the actual secret." -ForegroundColor Red
+                throw "Invalid Azure client secret"
+            }
+            [Environment]::SetEnvironmentVariable("ARM_CLIENT_SECRET", $secretValue)
             Write-Host "Set ARM_CLIENT_SECRET"
         }
     }

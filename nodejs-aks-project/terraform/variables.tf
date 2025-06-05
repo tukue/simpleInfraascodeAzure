@@ -11,12 +11,13 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region where resources will be created"
   type        = string
-  default     = "eastus"
+  default     = "northeurope"
 }
 
 variable "environment" {
   description = "Environment name"
-  type        = string
+  type        = string'
+  default     = "northeurope"
 }
 
 variable "cluster_name" {
