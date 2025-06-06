@@ -18,10 +18,10 @@ This project deploys a Node.js application to Azure Kubernetes Service (AKS) usi
    AZURE_TENANT_ID=your-tenant-id
    AZURE_CLIENT_ID=your-client-id
    AZURE_CLIENT_SECRET=your-client-secret
-   resource_group_name=my-nodejs-aks-rg
+   resource_group_name=nodejs-aks-rg
    location=northeurope
-   cluster_name=my-aks-cluster
-   acr_name=mynodejsacr
+   cluster_name=aks-cluster
+   acr_name=nodejsacr
    ```
 
 2. Run Terraform using the PowerShell script:
