@@ -6,15 +6,15 @@
 [![Node.js](https://img.shields.io/badge/Runtime-Node.js-339933?logo=nodedotjs)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker)](https://www.docker.com/)
 
-An end-to-end **Infrastructure as Code** project that provisions an **Azure Kubernetes Service (AKS)** cluster via **Terraform**, containerizes a **Node.js (Express)** web server with **Docker**, and deploys it using **Kubernetes** manifests — all automated through shell scripts.
+An end-to-end **Infrastructure as Code** project that provisions an **Azure Kubernetes Service (AKS)** cluster via **Terraform**, containerizes a **Node.js (Express)** web server with **Docker**, and deploys it using **Kubernetes** manifests — all automated through shell scripts. Covers the full cloud-native pipeline: cloud provisioning, containerization, orchestration, and application delivery.
 
 ---
 
 ## 📋 Table of Contents
 
-- [For Recruiters](#-for-recruiters)
-- [For Engineers](#-for-engineers)
+- [Technology Stack](#-technology-stack)
 - [Architecture](#-architecture)
+- [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
 - [Detailed Walkthrough](#-detailed-walkthrough)
 - [Customization](#-customization)
@@ -22,53 +22,31 @@ An end-to-end **Infrastructure as Code** project that provisions an **Azure Kube
 
 ---
 
-## 🔍 For Recruiters
+## 📦 Technology Stack
 
-> **Why this project matters:** It demonstrates every layer of a modern cloud-native deployment pipeline — from infrastructure provisioning to running application code — using the tools and practices that power real-world DevOps workflows.
+| Skill Area | Technology | Application |
+|---|---|---|
+| **Infrastructure as Code** | Terraform (HCL) | Declarative provisioning of AKS cluster + resource group |
+| **Cloud Platform** | Microsoft Azure (AKS) | Managed Kubernetes with Azure CNI + Calico network policies |
+| **Containerization** | Docker | Multi-stage build of Node.js app into portable image |
+| **Container Orchestration** | Kubernetes | 3-replica Deployment + LoadBalancer Service |
+| **Backend Runtime** | Node.js 14 / Express.js | REST API on port 4000 with 3 routes |
+| **Automation** | Bash | Build, tag, push, and deploy scripts |
 
-### Skills Demonstrated
+### Design Rationale
 
-| Skill | How It's Applied |
+| Decision | Reasoning |
 |---|---|
-| **Infrastructure as Code (IaC)** | Entire Azure environment defined in Terraform — repeatable, version-controlled, and destroyable |
-| **Cloud Engineering (Azure)** | Provisioned AKS cluster, resource groups, networking (Azure CNI + Calico) |
-| **Containerization** | Dockerized a Node.js app with a multi-stage build |
-| **Container Orchestration** | Kubernetes Deployment (3 replicas) + LoadBalancer Service exposed to the internet |
-| **DevOps / Automation** | Shell scripts automate the full build, push, and deploy cycle — CI/CD-ready |
-| **Backend Development** | Express.js REST API with multiple routes |
-| **Security Best Practices** | Sensible defaults: managed identity, sensitive output masking, Calico network policies |
-
-### Technology Stack at a Glance
-
-```
-Cloud      →  Microsoft Azure (AKS)
-Provision  →  Terraform (HCL)
-Container  →  Docker
-Orchestrate → Kubernetes
-Code       →  Node.js / Express.js (port 4000)
-Automate   →  Bash scripts
-```
-
-This project proves hands-on capability across the full **DevOps → Cloud → Backend** stack — exactly what cloud-native and platform engineering teams look for.
+| Terraform over ARM/Bicep | Cloud-agnostic — same config works for AWS/GCP |
+| AKS with Azure CNI | Native Azure networking; Calico for network policies |
+| System-assigned identity | No manual secret management for cluster auth |
+| 3 replicas | Balance between availability and cost |
+| Standard_DS2_v2 nodes | Cost-effective burstable VMs for dev/test |
+| Shell scripts over CI config | Pipeline-agnostic — portable to GitHub Actions, GitLab CI, Azure DevOps |
 
 ---
 
-## 🛠️ For Engineers
-
-A clean, minimal reference architecture for deploying containerized workloads on Azure. Everything is declarative, scripted, and ready to run.
-
-### Design Decisions
-
-| Choice | Rationale |
-|---|---|
-| **Terraform over ARM/Bicep** | Cloud-agnostic IaC; portable to AWS/GCP |
-| **AKS with Azure CNI** | Native Azure networking; Calico for network policies |
-| **System-assigned identity** | No manual secret management for cluster auth |
-| **3 replicas** | Balance between availability and cost |
-| **Standard_DS2_v2 nodes** | General-purpose burstable VMs — cost-effective for dev/test |
-| **Shell scripts over CI config** | Keeps pipeline agnostic — drop into GitHub Actions, GitLab CI, or Azure DevOps |
-
-### Prerequisites
+## 🛠️ Prerequisites
 
 | Tool | Min Version | Why |
 |---|---|---|
@@ -285,13 +263,13 @@ Destroys the resource group, AKS cluster, and all associated networking — no o
 
 ---
 
-## ✅ What This Project Demonstrates
+## ✅ Key Capabilities
 
-- **Infrastructure as Code** — Declarative Azure environment in Terraform
-- **Containerization** — Node.js app packaged into a portable Docker image
-- **Kubernetes** — Deployments (replicas, rolling updates) + LoadBalancer Services
-- **Automation** — Scripted build → push → deploy pipeline, ready for CI/CD
-- **Cloud-Native Security** — Managed identity, sensitive output handling, Calico policies
+- **Infrastructure as Code** — Declarative Azure environment in Terraform; repeatable, version-controlled, destroyable
+- **Containerization** — Node.js app packaged into a portable Docker image with multi-stage build
+- **Kubernetes Orchestration** — Deployments (3 replicas, rolling updates) + LoadBalancer Service for public access
+- **CI/CD-Ready Automation** — Scripted build, tag, push, and deploy pipeline; portable to GitHub Actions, GitLab CI, or Azure DevOps
+- **Cloud-Native Security** — System-assigned managed identity, sensitive output masking, Calico network policies
 
 ---
 
