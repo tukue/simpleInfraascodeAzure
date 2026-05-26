@@ -61,96 +61,135 @@ Plus an **active Azure subscription** with quota for 3 x Standard_DS2_v2 VMs (12
 
 ## 📐 Architecture
 
-### High-Level Infrastructure
+### Cloud Infrastructure Layout
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#f0f8ff', 'tertiaryColor': '#fff'}}}%%
 graph TB
-    subgraph "🌐 Internet"
-        User["User / Client"]
+    subgraph Internet["🌐  Internet Layer"]
+        User(("👤 End User<br/>HTTP Client"))
     end
 
-    subgraph "☁️ Microsoft Azure"
-        RG["Resource Group<br/><i>my-nodejs-aks-rg</i>"]
+    subgraph Azure["☁️  Microsoft Azure Cloud"]
+        direction TB
 
-        subgraph "☸️ AKS Cluster<br/><i>my-aks-cluster</i>"
+        subgraph RG["📂 Resource Group: my-nodejs-aks-rg"]
             direction TB
-            NodePool["Node Pool<br/>3x Standard_DS2_v2 VMs"]
 
-            subgraph "📦 Kubernetes Resources"
-                Service["LoadBalancer Service<br/><i>nodejs-app-service</i><br/>Port 80 → 3000"]
-                Deployment["Deployment<br/><i>nodejs-app</i><br/>3 replicas"]
-                Pod1["Pod 1<br/>nodejs-app:latest"]
-                Pod2["Pod 2<br/>nodejs-app:latest"]
-                Pod3["Pod 3<br/>nodejs-app:latest"]
+            subgraph AKS["☸️  AKS Cluster: my-aks-cluster"]
+                direction TB
+
+                NodePool["🖥️  Node Pool<br/>3 × Standard_DS2_v2<br/>(12 vCPU, 21 GiB RAM)"]
+
+                subgraph K8s["📦  Kubernetes Resources"]
+                    direction TB
+                    LB["🔀 LoadBalancer Service<br/>nodejs-app-service<br/>Port 80 → 3000"]
+                    Dep["⚙️  Deployment: nodejs-app<br/>Replicas: 3<br/>Strategy: RollingUpdate"]
+                    Pod1["📄 Pod 1<br/>nodejs-app:latest"]
+                    Pod2["📄 Pod 2<br/>nodejs-app:latest"]
+                    Pod3["📄 Pod 3<br/>nodejs-app:latest"]
+                end
             end
         end
     end
 
-    User -->|"HTTP :80"| Service
-    Service --> Deployment
-    Deployment --> Pod1 & Pod2 & Pod3
-    Pod1 -.->|"pulls image"| DockerRegistry["Container Registry<br/>(Docker Hub / ACR)"]
-    Pod2 -.->|"pulls image"| DockerRegistry
-    Pod3 -.->|"pulls image"| DockerRegistry
-    RG --> AKS
+    subgraph Registry["🗄️  Container Registry"]
+        CR["Docker Hub<br/>or<br/>Azure Container Registry"]
+    end
+
+    User -->|"HTTP :80"| LB
+    LB --> Dep
+    Dep --> Pod1 & Pod2 & Pod3
+    Pod1 -.->|"image pull"| CR
+    Pod2 -.->|"image pull"| CR
+    Pod3 -.->|"image pull"| CR
+    RG --- AKS
+
+    style Internet fill:#e8f4f8,stroke:#333,stroke-width:2px
+    style Azure fill:#e8f0fe,stroke:#0078D4,stroke-width:2px
+    style RG fill:#fef9e7,stroke:#f39c12,stroke-width:2px
+    style AKS fill:#f0e6f6,stroke:#844FBA,stroke-width:2px
+    style K8s fill:#eaf7ea,stroke:#326CE5,stroke-width:2px
+    style Registry fill:#fef5e7,stroke:#e67e22,stroke-width:2px
+    style User fill:#fff,stroke:#333,stroke-width:1px
+    style LB fill:#fff,stroke:#326CE5,stroke-width:2px
+    style Dep fill:#fff,stroke:#326CE5,stroke-width:2px
+    style NodePool fill:#fff,stroke:#844FBA,stroke-width:2px
 ```
 
-### Deployment Pipeline
+### End-to-End Deployment Pipeline
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#f4f4f4'}}}%%
 graph LR
-    subgraph "1️⃣ Provision Infrastructure"
+    subgraph Phase1["⛏️  Phase 1: Provision Infrastructure"]
         direction TB
-        TF1["terraform init"] --> TF2["terraform apply"]
-        TF2 --> AKS["AKS Cluster + Resource Group"]
+        TF_Init["terraform init<br/>Initialize providers"]:::tf --> TF_Plan["terraform plan<br/>Preview changes"]:::tf
+        TF_Plan --> TF_Apply["terraform apply<br/>Create resources"]:::tf
+        TF_Apply --> AKS["✅ AKS Cluster<br/>+ Resource Group"]:::tf
     end
 
-    subgraph "2️⃣ Build & Push Container"
+    subgraph Phase2["🐳  Phase 2: Build & Ship Container"]
         direction TB
-        Build["docker build<br/>Node.js 14 + Express"] --> Tag["docker tag"] --> Push["docker push<br/>to registry"]
+        D_Build["docker build<br/>Node.js 14 + Express"]:::docker --> D_Tag["docker tag<br/>:latest + :commit-sha"]:::docker
+        D_Tag --> D_Push["docker push<br/>to registry"]:::docker
     end
 
-    subgraph "3️⃣ Deploy to Kubernetes"
+    subgraph Phase3["☸️  Phase 3: Deploy to Kubernetes"]
         direction TB
-        K1["kubectl apply<br/>deployment.yaml"] --> K2["kubectl apply<br/>service.yaml"] --> K3["LoadBalancer<br/>public IP assigned"]
+        K_Deploy["kubectl apply<br/>deployment.yaml"]:::k8s --> K_Service["kubectl apply<br/>service.yaml"]:::k8s
+        K_Service --> K_Ready["Rollout complete<br/>3/3 pods running"]:::k8s
+        K_Ready --> K_IP["🌍 Public IP assigned<br/>kubectl get svc"]:::k8s
     end
 
-    AKS -.->|"kubeconfig credentials"| K1
-    Push --> K1
+    AKS -.->|"kubeconfig<br/>credentials"| K_Deploy
+    D_Push -->|"image reference"| K_Deploy
 
-    style TF1 fill:#844FBA,color:#fff
-    style TF2 fill:#844FBA,color:#fff
-    style Build fill:#2496ED,color:#fff
-    style Push fill:#2496ED,color:#fff
-    style K1 fill:#326CE5,color:#fff
-    style K2 fill:#326CE5,color:#fff
-    style K3 fill:#326CE5,color:#fff
+    classDef tf fill:#844FBA,color:#fff,stroke:#6a3d9a,stroke-width:2px
+    classDef docker fill:#2496ED,color:#fff,stroke:#1a7ac4,stroke-width:2px
+    classDef k8s fill:#326CE5,color:#fff,stroke:#2858b8,stroke-width:2px
+
+    style Phase1 fill:#f5eefb,stroke:#844FBA,stroke-width:2px,color:#333
+    style Phase2 fill:#eef6fe,stroke:#2496ED,stroke-width:2px,color:#333
+    style Phase3 fill:#eef3fd,stroke:#326CE5,stroke-width:2px,color:#333
 ```
 
-### Project Structure
+### Repository Map
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryBorderColor': '#333'}}}%%
 graph TD
-    Root["📁 nodejs-aks-project/"]
-    Root --> Src["📁 src/"]
-    Root --> TF["📁 terraform/"]
-    Root --> K8s["📁 kubernetes/"]
-    Root --> Scripts["📁 scripts/"]
+    Root["📁  nodejs-aks-project/"]:::root
 
-    Src --> AppJS["app.js — Express server (3 routes, port 4000)"]
-    Src --> Package["package.json — express ^4.17.1"]
-    Src --> Dockerfile["Dockerfile — node:14 base, expose 4000"]
+    Root --> Src["📁  src/<br/><i>Application source code</i>"]:::folder
+    Root --> TF["📁  terraform/<br/><i>Infrastructure as Code</i>"]:::folder
+    Root --> K8s["📁  kubernetes/<br/><i>K8s manifests</i>"]:::folder
+    Root --> Scripts["📁  scripts/<br/><i>Automation</i>"]:::folder
+    Root --> Readme["📄  README.md<br/><i>Documentation</i>"]:::file
 
-    TF --> Main["main.tf — AKS cluster + resource group"]
-    TF --> Vars["variables.tf — 7 configurable inputs"]
-    TF --> Outputs["outputs.tf — kube_config, host, cluster_id"]
-    TF --> TFVars["terraform.tfvars — default values"]
+    Src --> AppJS["📄  app.js<br/>Express server :4000<br/>3 routes: / /about /users"]:::js
+    Src --> Package["📄  package.json<br/>express ^4.17.1"]:::js
+    Src --> Dockerfile["📄  Dockerfile<br/>FROM node:14<br/>EXPOSE 4000"]:::docker
 
-    K8s --> Deploy["deployment.yaml — 3 replicas, rolling update"]
-    K8s --> Service["service.yaml — LoadBalancer :80 → :3000"]
+    TF --> Main["📄  main.tf<br/>azurerm_resource_group<br/>azurerm_kubernetes_cluster"]:::hcl
+    TF --> Vars["📄  variables.tf<br/>7 inputs: cluster_name,<br/>node_count, vm_size..."]:::hcl
+    TF --> Outputs["📄  outputs.tf<br/>kube_config (sensitive)<br/>host, cluster_id"]:::hcl
+    TF --> TFVars["📄  terraform.tfvars<br/>my-aks-cluster<br/>3 nodes, northeurope"]:::hcl
 
-    Scripts --> BuildSH["build.sh — docker build / tag / push"]
-    Scripts --> DeploySH["deploy.sh — kubectl apply / rollout status"]
+    K8s --> Deploy["📄  deployment.yaml<br/>apiVersion: apps/v1<br/>3 replicas, rolling update"]:::yaml
+    K8s --> Service["📄  service.yaml<br/>Type: LoadBalancer<br/>Port 80 → 3000"]:::yaml
+
+    Scripts --> BuildSH["📄  build.sh<br/>docker build + tag + push"]:::bash
+    Scripts --> DeploySH["📄  deploy.sh<br/>kubectl apply<br/>+ rollout status"]:::bash
+
+    classDef root fill:#2c3e50,color:#fff,stroke:#333,stroke-width:2px
+    classDef folder fill:#ecf0f1,color:#333,stroke:#95a5a6,stroke-width:1px
+    classDef file fill:#fff,color:#333,stroke:#bdc3c7,stroke-width:1px
+    classDef js fill:#fff,color:#333,stroke:#339933,stroke-width:2px
+    classDef docker fill:#fff,color:#333,stroke:#2496ED,stroke-width:2px
+    classDef hcl fill:#fff,color:#333,stroke:#844FBA,stroke-width:2px
+    classDef yaml fill:#fff,color:#333,stroke:#326CE5,stroke-width:2px
+    classDef bash fill:#fff,color:#333,stroke:#4eaa25,stroke-width:2px
 ```
 
 ---
